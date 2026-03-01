@@ -1,0 +1,80 @@
+/* ═══════════════════════════════════════════════════════════════
+   KODNEST PREMIUM BUILD SYSTEM — DESIGN TOKENS
+   tokens.css — Single source of truth for all design decisions
+═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── COLOR PALETTE (maximum 4 semantic colors) ── */
+  --color-bg:           #F7F6F3;   /* off-white surface */
+  --color-text:         #111111;   /* primary text */
+  --color-accent:       #8B0000;   /* deep red — primary actions */
+  --color-accent-hover: #6E0000;   /* deep red darkened for hover */
+  --color-accent-light: #f5e9e9;   /* tint for focus rings and muted accent bg */
+
+  /* Semantic utility colors (muted, not vivid) */
+  --color-success:      #3B6A45;   /* muted green */
+  --color-success-bg:   #EEF4EF;
+  --color-warning:      #8A6A1E;   /* muted amber */
+  --color-warning-bg:   #FAF4E4;
+  --color-error:        #8B0000;   /* reuse accent for error state */
+  --color-error-bg:     #f5e9e9;
+
+  /* Neutral scale */
+  --color-border:       #D9D7D1;   /* subtle card borders */
+  --color-border-focus: #8B0000;   /* focus outline */
+  --color-muted:        #5C5A56;   /* secondary / hint text */
+  --color-surface:      #FFFFFF;   /* card surface */
+  --color-overlay:      #EFEDE9;   /* hover state background */
+
+  /* ── TYPOGRAPHY ── */
+  --font-heading: 'DM Serif Display', Georgia, 'Times New Roman', serif;
+  --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --text-xs:   0.75rem;    /* 12px */
+  --text-sm:   0.875rem;   /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-md:   1.125rem;   /* 18px */
+  --text-lg:   1.375rem;   /* 22px */
+  --text-xl:   1.75rem;    /* 28px */
+  --text-2xl:  2.25rem;    /* 36px */
+  --text-3xl:  3rem;       /* 48px */
+
+  --leading-tight:  1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed:1.7;
+
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semibold:600;
+
+  /* ── SPACING SCALE (8px grid — never deviate) ── */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-5: 40px;
+  --space-8: 64px;
+
+  /* ── LAYOUT ── */
+  --max-width-text:   720px;   /* prose column max */
+  --max-width-layout: 1280px;  /* overall container */
+  --panel-primary:    70%;
+  --panel-secondary:  30%;
+
+  /* ── SHAPE ── */
+  --radius-sm:  4px;
+  --radius-md:  6px;
+  --radius-lg:  8px;
+
+  /* ── MOTION (calm, no bounce) ── */
+  --duration-fast:   150ms;
+  --duration-base:   200ms;
+  --easing-standard: ease-in-out;
+
+  /* ── ELEVATION (no deep shadows — borders only) ── */
+  --shadow-none: none;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+
+  /* ── Z-INDEX ── */
+  --z-topbar: 100;
+  --z-overlay: 200;
+}
