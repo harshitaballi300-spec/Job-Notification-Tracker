@@ -97,22 +97,28 @@
             }
         }
 
-        /* Page Content Styles */
-        .page-content {
-            padding: var(--space-8) 0;
-            text-align: center;
+        /* Page Header Styles */
+        .page-header {
+            padding: var(--space-5) 0;
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: var(--space-5);
         }
 
         .page-title {
             font-family: var(--font-heading);
-            font-size: var(--text-3xl);
+            font-size: var(--text-2xl);
             color: var(--color-text);
-            margin-bottom: var(--space-2);
+            margin-bottom: var(--space-1);
         }
 
         .page-subtitle {
             font-size: var(--text-md);
             color: var(--color-muted);
+        }
+
+        /* Form Container */
+        .form-container {
+            max-width: 600px;
         }
     </style>
 </head>
@@ -139,9 +145,57 @@
     </header>
 
     <main class="container">
-        <div class="page-content">
+        <div class="page-header">
             <h1 class="page-title">Settings</h1>
-            <p class="page-subtitle">This section will be built in the next step.</p>
+            <p class="page-subtitle">Configure your job tracking preferences.</p>
+        </div>
+
+        <div class="form-container">
+            <div class="card">
+                <div class="card__header">
+                    <h2 class="card__title">Job Preferences</h2>
+                </div>
+                <hr class="card__divider">
+
+                <div class="field-group">
+                    <label class="field-label" for="role-keywords">Role keywords</label>
+                    <input type="text" id="role-keywords" class="field-input"
+                        placeholder="e.g. Frontend Engineer, Product Manager">
+                    <p class="field-hint">Separate keywords with commas.</p>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="locations">Preferred locations</label>
+                    <input type="text" id="locations" class="field-input"
+                        placeholder="e.g. New York, Bengaluru, London">
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="work-mode">Mode (Remote/Hybrid/Onsite)</label>
+                    <select id="work-mode" class="field-input field-input--select">
+                        <option value="">Any</option>
+                        <option value="remote">Remote</option>
+                        <option value="hybrid">Hybrid</option>
+                        <option value="onsite">Onsite</option>
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="experience">Experience level</label>
+                    <select id="experience" class="field-input field-input--select">
+                        <option value="">Any</option>
+                        <option value="entry">Entry Level</option>
+                        <option value="mid">Mid Level</option>
+                        <option value="senior">Senior</option>
+                        <option value="lead">Lead / Staff</option>
+                    </select>
+                </div>
+
+                <div class="card__actions" style="margin-top: var(--space-4);">
+                    <button class="btn btn--primary">Save Preferences</button>
+                    <button class="btn btn--secondary">Reset</button>
+                </div>
+            </div>
         </div>
     </main>
 

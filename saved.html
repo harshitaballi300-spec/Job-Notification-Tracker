@@ -97,22 +97,18 @@
             }
         }
 
-        /* Page Content Styles */
-        .page-content {
-            padding: var(--space-8) 0;
-            text-align: center;
+        /* Page Header Styles */
+        .page-header {
+            padding: var(--space-5) 0;
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: var(--space-5);
         }
 
         .page-title {
             font-family: var(--font-heading);
-            font-size: var(--text-3xl);
+            font-size: var(--text-2xl);
             color: var(--color-text);
-            margin-bottom: var(--space-2);
-        }
-
-        .page-subtitle {
-            font-size: var(--text-md);
-            color: var(--color-muted);
+            margin-bottom: var(--space-1);
         }
     </style>
 </head>
@@ -139,9 +135,14 @@
     </header>
 
     <main class="container">
-        <div class="page-content">
+        <div class="page-header">
             <h1 class="page-title">Saved Jobs</h1>
-            <p class="page-subtitle">This section will be built in the next step.</p>
+        </div>
+
+        <div class="empty-state">
+            <div class="empty-state__icon">🔖</div>
+            <h2 class="empty-state__title">No saved jobs</h2>
+            <p class="empty-state__body">Jobs you bookmark from your dashboard or digest will appear here.</p>
         </div>
     </main>
 

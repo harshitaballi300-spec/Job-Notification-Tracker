@@ -97,22 +97,43 @@
             }
         }
 
-        /* Page Content Styles */
-        .page-content {
+        /* Hero Section Styles */
+        .hero {
             padding: var(--space-8) 0;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 64px - var(--space-8) * 2);
         }
 
-        .page-title {
+        .hero-title {
             font-family: var(--font-heading);
             font-size: var(--text-3xl);
             color: var(--color-text);
             margin-bottom: var(--space-2);
+            line-height: var(--leading-tight);
+            max-width: 800px;
+            letter-spacing: -0.02em;
         }
 
-        .page-subtitle {
-            font-size: var(--text-md);
+        .hero-subtitle {
+            font-size: var(--text-lg);
             color: var(--color-muted);
+            margin-bottom: var(--space-5);
+            max-width: 600px;
+            line-height: var(--leading-relaxed);
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: var(--text-2xl);
+            }
+
+            .hero-subtitle {
+                font-size: var(--text-md);
+            }
         }
     </style>
 </head>
@@ -139,10 +160,12 @@
     </header>
 
     <main class="container">
-        <div class="page-content">
-            <h1 class="page-title">Home</h1>
-            <p class="page-subtitle">This section will be built in the next step.</p>
-        </div>
+        <section class="hero">
+            <h1 class="hero-title">Stop Missing The Right Jobs.</h1>
+            <p class="hero-subtitle">Precision-matched job discovery delivered daily at 9AM.</p>
+            <a href="settings.html" class="btn btn--primary"
+                style="padding: 14px 32px; font-size: var(--text-md);">Start Tracking</a>
+        </section>
     </main>
 
     <script>
