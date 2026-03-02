@@ -367,6 +367,7 @@
         // 2. Fetch data & setup state
         let allJobs = typeof getJobsData !== 'undefined' ? getJobsData() : [];
         let savedJobIds = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+        let jobStatuses = JSON.parse(localStorage.getItem('jobTrackerStatus') || '{}');
 
         // DOM elements
         const grid = document.getElementById('jobs-grid');
@@ -376,6 +377,16 @@
         // Modal elements
         const modal = document.getElementById('job-modal');
         const modalClose = document.getElementById('modal-close');
+
+        // 2a. Status Toggle Logic
+        function updateJobStatus(jobId, newStatus) {
+            jobStatuses[jobId] = {
+                status: newStatus,
+                updatedAt: new Date().toISOString()
+            };
+            localStorage.setItem('jobTrackerStatus', JSON.stringify(jobStatuses));
+            renderJobs();
+        }
 
         // 3. Render Jobs Function
         function renderJobs() {
@@ -394,27 +405,51 @@
             grid.style.display = 'grid';
             emptyState.style.display = 'none';
 
-            // Convert backwards to naturally show latest saved as first (optional, standard ordering)
             savedJobsData.forEach(job => {
                 const postedText = job.postedDaysAgo === 0 ? 'Today' : `${job.postedDaysAgo}d ago`;
+
+                // Job Status
+                const statusInfo = jobStatuses[job.id] || { status: 'Not Applied' };
+                const currentStatus = statusInfo.status;
+                let statusBadgeClass = 'badge--neutral';
+                if (currentStatus === 'Applied') statusBadgeClass = 'badge--info';
+                else if (currentStatus === 'Rejected') statusBadgeClass = 'badge--error';
+                else if (currentStatus === 'Selected') statusBadgeClass = 'badge--success';
+
                 const card = document.createElement('div');
                 card.className = 'card job-card';
                 card.innerHTML = `
                     <div class="job-card__meta">
-                        <span class="job-card__company">${job.company}</span>
-                        <span class="job-card__tag">${postedText}</span>
-                        <span class="badge ${job.source === 'LinkedIn' ? 'badge--success' : (job.source === 'Naukri' ? 'badge--warning' : 'badge--neutral')}">${job.source}</span>
+                        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                            <span class="job-card__company">${job.company}</span>
+                            <span class="job-card__tag">${postedText}</span>
+                            <span class="badge ${job.source === 'LinkedIn' ? 'badge--success' : (job.source === 'Naukri' ? 'badge--warning' : 'badge--neutral')}">${job.source}</span>
+                        </div>
                     </div>
-                    <h3 class="card__title" style="font-size: var(--text-lg); margin-bottom: var(--space-2);">${job.title}</h3>
                     
-                    <div class="job-card__details">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-2);">
+                        <h3 class="card__title" style="font-size: var(--text-lg); margin-bottom: 0;">${job.title}</h3>
+                        <span class="badge ${statusBadgeClass}">${currentStatus}</span>
+                    </div>
+                    
+                    <div class="job-card__details" style="margin-bottom: var(--space-3);">
                         <div class="job-card__detail-item">📍 ${job.location} • ${job.mode}</div>
                         <div class="job-card__detail-item">⏱️ ${job.experience}</div>
                         <div class="job-card__detail-item" style="grid-column: 1 / -1">💰 ${job.salaryRange}</div>
                     </div>
 
+                    <div style="padding-top: var(--space-2); border-top: 1px dotted var(--color-border); margin-bottom: var(--space-3);">
+                        <label class="field-label" style="font-size: 10px; text-transform: uppercase; color: var(--color-muted); display: block; margin-bottom: 4px;">Update Status</label>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button class="btn btn--secondary status-btn ${currentStatus === 'Applied' ? 'btn--primary' : ''}" data-id="${job.id}" data-status="Applied" style="padding: 4px 8px; font-size: 10px; height: auto;">Applied</button>
+                            <button class="btn btn--secondary status-btn ${currentStatus === 'Rejected' ? 'btn--primary' : ''}" data-id="${job.id}" data-status="Rejected" style="padding: 4px 8px; font-size: 10px; height: auto;">Rejected</button>
+                            <button class="btn btn--secondary status-btn ${currentStatus === 'Selected' ? 'btn--primary' : ''}" data-id="${job.id}" data-status="Selected" style="padding: 4px 8px; font-size: 10px; height: auto;">Selected</button>
+                            <button class="btn btn--secondary status-btn ${currentStatus === 'Not Applied' ? 'btn--primary' : ''}" data-id="${job.id}" data-status="Not Applied" style="padding: 4px 8px; font-size: 10px; height: auto;">Reset</button>
+                        </div>
+                    </div>
+
                     <div class="job-card__footer">
-                        <button class="btn btn--secondary view-btn" data-id="${job.id}">View Details</button>
+                        <button class="btn btn--secondary view-btn" data-id="${job.id}">Details</button>
                         <div class="job-card__actions">
                             <button class="btn-icon save-btn" data-id="${job.id}" title="Unsave">❤️</button>
                             <a href="${job.applyUrl}" target="_blank" class="btn btn--primary" style="padding: 6px 16px;">Apply</a>
@@ -443,6 +478,15 @@
                     const button = e.target.closest('.save-btn');
                     const id = button.getAttribute('data-id');
                     unsaveJob(id);
+                });
+            });
+
+            // Status Buttons
+            document.querySelectorAll('.status-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const status = e.target.getAttribute('data-status');
+                    updateJobStatus(id, status);
                 });
             });
         }

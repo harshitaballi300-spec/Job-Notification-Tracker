@@ -374,6 +374,14 @@
                 <option value="Indeed">Indeed</option>
             </select>
 
+            <select id="filter-status" class="field-input field-input--select filter-select">
+                <option value="">All Statuses</option>
+                <option value="Not Applied">Not Applied</option>
+                <option value="Applied">Applied</option>
+                <option value="Rejected">Rejected</option>
+                <option value="Selected">Selected</option>
+            </select>
+
             <select id="filter-sort" class="field-input field-input--select filter-select">
                 <option value="latest">Latest First</option>
                 <option value="score">Match Score</option>
@@ -449,6 +457,7 @@
         }
         let savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
         const userPrefs = JSON.parse(localStorage.getItem('jobTrackerPreferences') || 'null');
+        let jobStatuses = JSON.parse(localStorage.getItem('jobTrackerStatus') || '{}');
 
         // DOM elements
         const grid = document.getElementById('jobs-grid');
@@ -459,6 +468,7 @@
         const filterMode = document.getElementById('filter-mode');
         const filterExperience = document.getElementById('filter-experience');
         const filterSource = document.getElementById('filter-source');
+        const filterStatus = document.getElementById('filter-status');
         const filterSort = document.getElementById('filter-sort');
         const filterMatchOnly = document.getElementById('filter-match-only');
         const prefsBanner = document.getElementById('preferences-banner');
@@ -467,7 +477,25 @@
         const modal = document.getElementById('job-modal');
         const modalClose = document.getElementById('modal-close');
 
-        // 2a. Match Score Engine
+        // 2a. Status Toggle Logic
+        function updateJobStatus(jobId, newStatus) {
+            jobStatuses[jobId] = {
+                status: newStatus,
+                updatedAt: new Date().toISOString()
+            };
+            localStorage.setItem('jobTrackerStatus', JSON.stringify(jobStatuses));
+
+            // Notification
+            if (typeof showToast === 'function') {
+                showToast(`Status updated: ${newStatus}`, 'default');
+            } else {
+                console.log(`Status updated: ${newStatus}`);
+            }
+
+            renderJobs();
+        }
+
+        // 2b. Match Score Engine
         function calculateMatchScore(job, prefs) {
             if (!prefs) return 0;
 
@@ -575,10 +603,14 @@
                 const matchesExp = filterExperience.value === '' || job.experience === filterExperience.value;
                 const matchesSource = filterSource.value === '' || job.source === filterSource.value;
 
+                // Status Filter
+                const statusInfo = jobStatuses[job.id] || { status: 'Not Applied' };
+                const matchesStatus = filterStatus.value === '' || statusInfo.status === filterStatus.value;
+
                 // Match Threshold Filter
                 const matchesThreshold = !onlyMatches || job.matchScore >= minThreshold;
 
-                return matchesSearch && matchesLocation && matchesMode && matchesExp && matchesSource && matchesThreshold;
+                return matchesSearch && matchesLocation && matchesMode && matchesExp && matchesSource && matchesThreshold && matchesStatus;
             });
 
             // Sort logic
@@ -617,23 +649,37 @@
                 const isSaved = savedJobs.includes(job.id);
                 const postedText = job.postedDaysAgo === 0 ? 'Today' : `${job.postedDaysAgo}d ago`;
 
+                // Job Status
+                const statusInfo = jobStatuses[job.id] || { status: 'Not Applied' };
+                const currentStatus = statusInfo.status;
+                let statusBadgeClass = 'badge--neutral';
+                if (currentStatus === 'Applied') statusBadgeClass = 'badge--info';
+                else if (currentStatus === 'Rejected') statusBadgeClass = 'badge--error';
+                else if (currentStatus === 'Selected') statusBadgeClass = 'badge--success';
+
                 // Match score badge color
                 let scoreClass = 'badge--neutral';
                 if (job.matchScore >= 80) scoreClass = 'badge--success';
                 else if (job.matchScore >= 60) scoreClass = 'badge--warning';
                 else if (job.matchScore >= 40) scoreClass = 'badge--neutral';
-                else scoreClass = 'badge--subtle'; // Custom class
+                else scoreClass = 'badge--subtle';
 
                 const card = document.createElement('div');
                 card.className = 'card job-card';
                 card.innerHTML = `
                     <div class="job-card__meta">
-                        <span class="job-card__company">${job.company}</span>
-                        <span class="job-card__tag">${postedText}</span>
-                        <span class="badge ${job.source === 'LinkedIn' ? 'badge--success' : (job.source === 'Naukri' ? 'badge--warning' : 'badge--neutral')}">${job.source}</span>
-                        ${userPrefs ? `<span class="badge ${scoreClass}" style="margin-left: auto;">${job.matchScore}% Match</span>` : ''}
+                        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                            <span class="job-card__company">${job.company}</span>
+                            <span class="job-card__tag">${postedText}</span>
+                            <span class="badge ${job.source === 'LinkedIn' ? 'badge--success' : (job.source === 'Naukri' ? 'badge--warning' : 'badge--neutral')}">${job.source}</span>
+                            ${userPrefs ? `<span class="badge ${scoreClass}" style="margin-left: auto;">${job.matchScore}% Match</span>` : ''}
+                        </div>
                     </div>
-                    <h3 class="card__title" style="font-size: var(--text-lg); margin-bottom: var(--space-2);">${job.title}</h3>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-2);">
+                        <h3 class="card__title" style="font-size: var(--text-lg); margin-bottom: 0;">${job.title}</h3>
+                        <span class="badge ${statusBadgeClass}">${currentStatus}</span>
+                    </div>
                     
                     <div class="job-card__details">
                         <div class="job-card__detail-item">📍 ${job.location} • ${job.mode}</div>
@@ -641,8 +687,18 @@
                         <div class="job-card__detail-item" style="grid-column: 1 / -1">💰 ${job.salaryRange}</div>
                     </div>
 
+                    <div style="margin-top: var(--space-3); padding-top: var(--space-2); border-top: 1px dotted var(--color-border); margin-bottom: var(--space-3);">
+                        <label class="field-label" style="font-size: 10px; text-transform: uppercase; color: var(--color-muted); display: block; margin-bottom: 4px;">Update Status</label>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button class="btn btn--secondary status-btn ${currentStatus === 'Applied' ? 'btn--primary' : ''}" data-id="${job.id}" data-status="Applied" style="padding: 4px 8px; font-size: 10px; height: auto;">Applied</button>
+                            <button class="btn btn--secondary status-btn ${currentStatus === 'Rejected' ? 'btn--primary' : ''}" data-id="${job.id}" data-status="Rejected" style="padding: 4px 8px; font-size: 10px; height: auto;">Rejected</button>
+                            <button class="btn btn--secondary status-btn ${currentStatus === 'Selected' ? 'btn--primary' : ''}" data-id="${job.id}" data-status="Selected" style="padding: 4px 8px; font-size: 10px; height: auto;">Selected</button>
+                            <button class="btn btn--secondary status-btn ${currentStatus === 'Not Applied' ? 'btn--primary' : ''}" data-id="${job.id}" data-status="Not Applied" style="padding: 4px 8px; font-size: 10px; height: auto;">Reset</button>
+                        </div>
+                    </div>
+
                     <div class="job-card__footer">
-                        <button class="btn btn--secondary view-btn" data-id="${job.id}">View Details</button>
+                        <button class="btn btn--secondary view-btn" data-id="${job.id}">Details</button>
                         <div class="job-card__actions">
                             <button class="btn-icon save-btn" data-id="${job.id}" title="${isSaved ? 'Unsave' : 'Save'}">
                                 ${isSaved ? '❤️' : '🤍'}
@@ -670,13 +726,27 @@
             // Save Buttons
             document.querySelectorAll('.save-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    // navigate up to find the button if inner span/icon clicked
                     const button = e.target.closest('.save-btn');
                     const id = button.getAttribute('data-id');
                     toggleSaveJob(id, button);
                 });
             });
+
+            // Status Buttons
+            document.querySelectorAll('.status-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const status = e.target.getAttribute('data-status');
+                    updateJobStatus(id, status);
+                });
+            });
         }
+
+        // Add event listeners for filters
+        [filterSearch, filterLocation, filterMode, filterExperience, filterSource, filterStatus, filterSort, filterMatchOnly].forEach(el => {
+            el.addEventListener('change', renderJobs);
+        });
+        filterSearch.addEventListener('input', renderJobs);
 
         // 4. Save Logic
         function toggleSaveJob(id, btnElement) {

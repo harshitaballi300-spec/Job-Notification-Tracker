@@ -182,9 +182,63 @@
             <h2 class="empty-state__title">Your digest is brewing</h2>
             <p class="empty-state__body">Check back at 9AM for your personalized batch of high-signal opportunities.</p>
         </div>
+
+        <!-- Recent Status Updates Section -->
+        <div id="status-updates-section" style="margin-top: var(--space-8); margin-bottom: var(--space-8);">
+            <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3);">
+                <h2 class="page-title" style="margin-bottom: 0;">Recent Status Updates</h2>
+                <span class="badge badge--info" id="status-update-count">0</span>
+            </div>
+
+            <div id="status-updates-container" class="card" style="padding: 0; overflow: hidden;">
+                <div id="status-updates-list">
+                    <!-- Status updates injected here -->
+                </div>
+            </div>
+
+            <div id="status-updates-empty" class="empty-state"
+                style="padding: var(--space-5); background-color: var(--color-overlay); border-radius: var(--radius-md); margin-top: var(--space-2);">
+                <p class="empty-state__body">No recent status updates. Update a job's status on the dashboard to see it
+                    here.</p>
+            </div>
+        </div>
     </main>
 
     <style>
+        .status-update-item {
+            padding: var(--space-3) var(--space-4);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-update-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-update-item__info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-update-item__title {
+            font-weight: 600;
+            color: var(--color-text);
+            font-size: var(--text-sm);
+        }
+
+        .status-update-item__company {
+            color: var(--color-muted);
+            font-size: var(--text-xs);
+        }
+
+        .status-update-item__date {
+            font-size: 10px;
+            color: #A8A5A0;
+            margin-top: 2px;
+        }
+
         .email-layout {
             background-color: var(--color-bg);
             padding: var(--space-5) var(--space-2);
@@ -432,6 +486,63 @@
             window.location.href = `mailto:?subject=${subject}&body=${encodeURIComponent(body)}`;
         });
 
+        // 8. Recent Status Updates Logic
+        function renderStatusUpdates() {
+            const statusContainer = document.getElementById('status-updates-container');
+            const statusList = document.getElementById('status-updates-list');
+            const statusEmpty = document.getElementById('status-updates-empty');
+            const statusCountBadge = document.getElementById('status-update-count');
+
+            const statuses = JSON.parse(localStorage.getItem('jobTrackerStatus') || '{}');
+            const updateItems = [];
+
+            for (const jobId in statuses) {
+                const job = jobs.find(j => j.id === jobId);
+                if (job && statuses[jobId].status !== 'Not Applied') {
+                    updateItems.push({
+                        ...job,
+                        ...statuses[jobId]
+                    });
+                }
+            }
+
+            // Sort by latest update date
+            updateItems.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+            if (updateItems.length === 0) {
+                statusContainer.style.display = 'none';
+                statusEmpty.style.display = 'flex';
+                statusCountBadge.textContent = '0';
+                return;
+            }
+
+            statusContainer.style.display = 'block';
+            statusEmpty.style.display = 'none';
+            statusList.innerHTML = '';
+            statusCountBadge.textContent = updateItems.length;
+
+            updateItems.forEach(item => {
+                const date = new Date(item.updatedAt);
+                const dateText = date.toLocaleDateString('en-GB') + ' ' + date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+                let badgeClass = 'badge--info';
+                if (item.status === 'Rejected') badgeClass = 'badge--error';
+                else if (item.status === 'Selected') badgeClass = 'badge--success';
+
+                const div = document.createElement('div');
+                div.className = 'status-update-item';
+                div.innerHTML = `
+                    <div class="status-update-item__info">
+                        <span class="status-update-item__title">${item.title}</span>
+                        <span class="status-update-item__company">${item.company}</span>
+                        <span class="status-update-item__date">Updated: ${dateText}</span>
+                    </div>
+                    <span class="badge ${badgeClass}">${item.status}</span>
+                `;
+                statusList.appendChild(div);
+            });
+        }
+
         // Init: Check for existing today
         const existingDigest = localStorage.getItem(`jobTrackerDigest_${dateStr}`);
         if (existingDigest) {
@@ -439,6 +550,9 @@
         }
 
         generateBtn.addEventListener('click', generateDigest);
+
+        // Initial call
+        renderStatusUpdates();
     </script>
 </body>
 

@@ -173,6 +173,12 @@
     border-color: #D4A0A0;
 }
 
+.badge--info {
+    background-color: #E3F2FD;
+    color: #1976D2;
+    border-color: #BBDEFB;
+}
+
 .badge--subtle {
     background-color: var(--color-bg);
     color: var(--color-muted);
