@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ship - Job Notification Tracker</title>
+    <link rel="stylesheet" href="../css/tokens.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <style>
+        .locked {
+            color: var(--color-error);
+            font-size: var(--text-lg);
+            margin-top: var(--space-4);
+        }
+
+        .ready {
+            color: var(--color-success);
+            font-size: var(--text-lg);
+            margin-top: var(--space-4);
+        }
+
+        .ship-btn {
+            margin-top: var(--space-4);
+        }
+    </style>
+</head>
+
+<body>
+    <header class="nav-header">
+        <div class="container nav-container">
+            <a href="../index.html" class="nav-brand">
+                <div class="top-bar__logo-dot"></div>
+                Job Tracker
+            </a>
+            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle menu">☰</button>
+            <nav class="nav-links" id="nav-links">
+                <a href="../dashboard.html" class="nav-link">Dashboard</a>
+                <a href="../saved.html" class="nav-link">Saved</a>
+                <a href="../digest.html" class="nav-link">Digest</a>
+                <a href="../settings.html" class="nav-link">Settings</a>
+                <a href="../proof.html" class="nav-link">Proof</a>
+                <a href="07-test.html" class="nav-link">Test Checklist</a>
+                <a href="08-ship.html" class="nav-link active">Ship</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="page-header">
+            <h1 class="page-title">Ship Lock</h1>
+            <div id="status-message" class="locked">Checking test checklist...</div>
+            <button class="btn btn--primary ship-btn" id="ship-btn" disabled>Ship Now</button>
+        </section>
+    </main>
+
+    <script>
+        // Mobile menu toggle (same as other pages)
+        document.getElementById('mobile-menu-btn').addEventListener('click', function () {
+            document.getElementById('nav-links').classList.toggle('show');
+        });
+
+        const checklistIds = ['test1', 'test2', 'test3', 'test4', 'test5', 'test6', 'test7', 'test8', 'test9', 'test10'];
+        const storageKey = 'testChecklistStatus';
+        const statusEl = document.getElementById('status-message');
+        const shipBtn = document.getElementById('ship-btn');
+
+        function evaluateLock() {
+            const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            const passed = checklistIds.filter(id => saved[id]).length;
+            if (passed === 10) {
+                statusEl.textContent = 'All tests passed – ready to ship!';
+                statusEl.className = 'ready';
+                shipBtn.disabled = false;
+            } else {
+                statusEl.textContent = `Tests passed: ${passed} / 10 – ship locked.`;
+                statusEl.className = 'locked';
+                shipBtn.disabled = true;
+            }
+        }
+
+        // Optional: clicking ship button could show a celebratory message
+        shipBtn.addEventListener('click', () => {
+            alert('🚀 Ship successful!');
+        });
+
+        evaluateLock();
+    </script>
+</body>
+
+</html>
