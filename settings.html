@@ -158,51 +158,175 @@
                 <hr class="card__divider">
 
                 <div class="field-group">
-                    <label class="field-label" for="role-keywords">Role keywords</label>
+                    <label class="field-label" for="role-keywords">Role Keywords</label>
                     <input type="text" id="role-keywords" class="field-input"
                         placeholder="e.g. Frontend Engineer, Product Manager">
                     <p class="field-hint">Separate keywords with commas.</p>
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="locations">Preferred locations</label>
-                    <input type="text" id="locations" class="field-input"
-                        placeholder="e.g. New York, Bengaluru, London">
-                </div>
-
-                <div class="field-group">
-                    <label class="field-label" for="work-mode">Mode (Remote/Hybrid/Onsite)</label>
-                    <select id="work-mode" class="field-input field-input--select">
-                        <option value="">Any</option>
-                        <option value="remote">Remote</option>
-                        <option value="hybrid">Hybrid</option>
-                        <option value="onsite">Onsite</option>
+                    <label class="field-label" for="locations">Preferred Locations</label>
+                    <select id="locations" class="field-input field-input--select" multiple
+                        style="height: auto; min-height: 100px;">
+                        <!-- Options will be populated via JS -->
                     </select>
+                    <p class="field-hint">Hold Ctrl (Cmd) to select multiple.</p>
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="experience">Experience level</label>
+                    <label class="field-label">Preferred Mode</label>
+                    <div style="display: flex; gap: var(--space-4); margin-top: var(--space-1);">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="work-mode" value="Remote"> Remote
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="work-mode" value="Hybrid"> Hybrid
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="work-mode" value="Onsite"> Onsite
+                        </label>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="experience">Experience Level</label>
                     <select id="experience" class="field-input field-input--select">
                         <option value="">Any</option>
-                        <option value="entry">Entry Level</option>
-                        <option value="mid">Mid Level</option>
-                        <option value="senior">Senior</option>
-                        <option value="lead">Lead / Staff</option>
+                        <option value="Fresher">Fresher</option>
+                        <option value="0-1">0-1 Year</option>
+                        <option value="1-3">1-3 Years</option>
+                        <option value="3-5">3-5 Years</option>
                     </select>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="skills">Skills</label>
+                    <input type="text" id="skills" class="field-input" placeholder="e.g. React, Python, AWS">
+                    <p class="field-hint">Separate skills with commas.</p>
+                </div>
+
+                <div class="field-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label class="field-label" for="min-match-score">Minimum Match Score</label>
+                        <span id="score-value" style="font-weight: 600; color: var(--color-accent);">40</span>
+                    </div>
+                    <input type="range" id="min-match-score" class="field-input" min="0" max="100" value="40"
+                        style="padding: 0; cursor: pointer;">
+                    <p class="field-hint">Only show jobs that match at least this much of your profile.</p>
                 </div>
 
                 <div class="card__actions" style="margin-top: var(--space-4);">
-                    <button class="btn btn--primary">Save Preferences</button>
-                    <button class="btn btn--secondary">Reset</button>
+                    <button id="save-settings" class="btn btn--primary">Save Preferences</button>
+                    <button id="reset-settings" class="btn btn--secondary">Reset</button>
                 </div>
             </div>
         </div>
     </main>
 
+    <!-- Load data -->
+    <script src="js/data.js"></script>
     <script>
+        // 1. Mobile Menu Toggle
         document.getElementById('mobile-menu-btn').addEventListener('click', function () {
             document.getElementById('nav-links').classList.toggle('show');
         });
+
+        // 2. DOM Elements
+        const roleKeywordsInput = document.getElementById('role-keywords');
+        const locationsSelect = document.getElementById('locations');
+        const modeCheckboxes = document.getElementsByName('work-mode');
+        const experienceSelect = document.getElementById('experience');
+        const skillsInput = document.getElementById('skills');
+        const minMatchScoreInput = document.getElementById('min-match-score');
+        const scoreValueDisplay = document.getElementById('score-value');
+        const saveBtn = document.getElementById('save-settings');
+        const resetBtn = document.getElementById('reset-settings');
+
+        // 3. Populate Locations from data
+        let jobs = [];
+        if (typeof getJobsData !== 'undefined') {
+            jobs = getJobsData();
+        }
+        const uniqueLocations = [...new Set(jobs.map(j => j.location))].sort();
+        uniqueLocations.forEach(loc => {
+            const opt = document.createElement('option');
+            opt.value = loc;
+            opt.textContent = loc;
+            locationsSelect.appendChild(opt);
+        });
+
+        // 4. Slider Display Logic
+        minMatchScoreInput.addEventListener('input', (e) => {
+            scoreValueDisplay.textContent = e.target.value;
+        });
+
+        // 5. Load Preferences
+        function loadPreferences() {
+            const savedPrefs = localStorage.getItem('jobTrackerPreferences');
+            if (savedPrefs) {
+                const prefs = JSON.parse(savedPrefs);
+
+                roleKeywordsInput.value = (prefs.roleKeywords || []).join(', ');
+
+                // Set multi-select locations
+                const preferredLocations = prefs.preferredLocations || [];
+                Array.from(locationsSelect.options).forEach(opt => {
+                    opt.selected = preferredLocations.includes(opt.value);
+                });
+
+                // Set checkboxes for mode
+                const preferredMode = prefs.preferredMode || [];
+                modeCheckboxes.forEach(cb => {
+                    cb.checked = preferredMode.includes(cb.value);
+                });
+
+                experienceSelect.value = prefs.experienceLevel || '';
+                skillsInput.value = (prefs.skills || []).join(', ');
+                minMatchScoreInput.value = prefs.minMatchScore || 40;
+                scoreValueDisplay.textContent = minMatchScoreInput.value;
+            }
+        }
+
+        // 6. Save Preferences
+        saveBtn.addEventListener('click', () => {
+            const roleKeywords = roleKeywordsInput.value.split(',').map(s => s.trim()).filter(s => s !== '');
+            const preferredLocations = Array.from(locationsSelect.selectedOptions).map(opt => opt.value);
+            const preferredMode = Array.from(modeCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+            const experienceLevel = experienceSelect.value;
+            const skills = skillsInput.value.split(',').map(s => s.trim()).filter(s => s !== '');
+            const minMatchScore = parseInt(minMatchScoreInput.value);
+
+            const prefs = {
+                roleKeywords,
+                preferredLocations,
+                preferredMode,
+                experienceLevel,
+                skills,
+                minMatchScore
+            };
+
+            localStorage.setItem('jobTrackerPreferences', JSON.stringify(prefs));
+
+            // Visual feedback
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Settings Saved! ✓';
+            saveBtn.classList.add('btn--success');
+            setTimeout(() => {
+                saveBtn.textContent = originalText;
+                saveBtn.classList.remove('btn--success');
+            }, 2000);
+        });
+
+        // 7. Reset Logic
+        resetBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to reset all preferences?')) {
+                localStorage.removeItem('jobTrackerPreferences');
+                location.reload();
+            }
+        });
+
+        // Init
+        loadPreferences();
     </script>
 </body>
 

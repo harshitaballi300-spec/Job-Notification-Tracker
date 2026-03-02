@@ -327,7 +327,24 @@
             <div id="job-count" class="text-sm text-muted">Loading jobs...</div>
         </div>
 
+        <div id="preferences-banner" class="alert alert--neutral" style="display: none; margin-bottom: var(--space-4);">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <span>Set your preferences to activate intelligent matching.</span>
+                <a href="settings.html" class="btn btn--secondary"
+                    style="padding: 4px 12px; font-size: var(--text-xs);">Go to Settings</a>
+            </div>
+        </div>
+
         <div class="filter-bar">
+            <div
+                style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); width: 100%; border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2);">
+                <label
+                    style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: var(--text-sm); font-weight: 500;">
+                    <input type="checkbox" id="filter-match-only" style="width: 16px; height: 16px;">
+                    Show only jobs above my threshold
+                </label>
+            </div>
+
             <input type="text" id="filter-search" class="field-input filter-search"
                 placeholder="Search by title or company...">
 
@@ -359,6 +376,8 @@
 
             <select id="filter-sort" class="field-input field-input--select filter-select">
                 <option value="latest">Latest First</option>
+                <option value="score">Match Score</option>
+                <option value="salary">Salary (High to Low)</option>
                 <option value="oldest">Oldest First</option>
             </select>
         </div>
@@ -429,6 +448,7 @@
             jobs = getJobsData();
         }
         let savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+        const userPrefs = JSON.parse(localStorage.getItem('jobTrackerPreferences') || 'null');
 
         // DOM elements
         const grid = document.getElementById('jobs-grid');
@@ -440,10 +460,78 @@
         const filterExperience = document.getElementById('filter-experience');
         const filterSource = document.getElementById('filter-source');
         const filterSort = document.getElementById('filter-sort');
+        const filterMatchOnly = document.getElementById('filter-match-only');
+        const prefsBanner = document.getElementById('preferences-banner');
 
         // Modal elements
         const modal = document.getElementById('job-modal');
         const modalClose = document.getElementById('modal-close');
+
+        // 2a. Match Score Engine
+        function calculateMatchScore(job, prefs) {
+            if (!prefs) return 0;
+
+            let score = 0;
+
+            // +25 if any roleKeyword appears in job.title (case-insensitive)
+            if (prefs.roleKeywords && prefs.roleKeywords.length > 0) {
+                const titleLower = job.title.toLowerCase();
+                const matchedKeyword = prefs.roleKeywords.some(kw => titleLower.includes(kw.toLowerCase()));
+                if (matchedKeyword) score += 25;
+            }
+
+            // +15 if any roleKeyword appears in job.description
+            if (prefs.roleKeywords && prefs.roleKeywords.length > 0) {
+                const descLower = job.description.toLowerCase();
+                const matchedKeyword = prefs.roleKeywords.some(kw => descLower.includes(kw.toLowerCase()));
+                if (matchedKeyword) score += 15;
+            }
+
+            // +15 if job.location matches preferredLocations
+            if (prefs.preferredLocations && prefs.preferredLocations.length > 0) {
+                if (prefs.preferredLocations.includes(job.location)) score += 15;
+            }
+
+            // +10 if job.mode matches preferredMode
+            if (prefs.preferredMode && prefs.preferredMode.length > 0) {
+                if (prefs.preferredMode.includes(job.mode)) score += 10;
+            }
+
+            // +10 if job.experience matches experienceLevel
+            if (prefs.experienceLevel && job.experience === prefs.experienceLevel) {
+                score += 10;
+            }
+
+            // +15 if overlap between job.skills and user.skills (any match)
+            if (prefs.skills && prefs.skills.length > 0 && job.skills && job.skills.length > 0) {
+                const hasSkillOverlap = job.skills.some(skill =>
+                    prefs.skills.some(userSkill =>
+                        skill.toLowerCase().includes(userSkill.toLowerCase()) ||
+                        userSkill.toLowerCase().includes(skill.toLowerCase())
+                    )
+                );
+                if (hasSkillOverlap) score += 15;
+            }
+
+            // +5 if postedDaysAgo <= 2
+            if (job.postedDaysAgo <= 2) score += 5;
+
+            // +5 if source is LinkedIn
+            if (job.source === 'LinkedIn') score += 5;
+
+            return Math.min(score, 100);
+        }
+
+        // Initialize display scores
+        jobs = jobs.map(job => ({
+            ...job,
+            matchScore: calculateMatchScore(job, userPrefs)
+        }));
+
+        // Handle Banner Visibility
+        if (!userPrefs) {
+            prefsBanner.style.display = 'block';
+        }
 
         // Populate Location Filter dynamically
         const uniqueLocations = [...new Set(jobs.map(j => j.location))].sort();
@@ -454,12 +542,31 @@
             filterLocation.appendChild(opt);
         });
 
+        // 2b. Salary Parsing Helper
+        function getSalaryValue(salaryStr) {
+            if (!salaryStr) return 0;
+            // Handle LPA (Lakhs Per Annum)
+            const lpaMatch = salaryStr.match(/(\d+)/);
+            if (salaryStr.toUpperCase().includes('LPA')) {
+                return parseFloat(lpaMatch[0]) * 100000;
+            }
+            // Handle Monthly Internship
+            const monthlyMatch = salaryStr.match(/(\d+)/);
+            if (salaryStr.toLowerCase().includes('month')) {
+                return parseFloat(monthlyMatch[0]) * 12000; // rough estimation for sorting
+            }
+            return 0;
+        }
+
         // 3. Render Jobs Function
         function renderJobs() {
             grid.innerHTML = '';
 
             // Filter logic
             const searchTerms = filterSearch.value.toLowerCase();
+            const minThreshold = userPrefs ? userPrefs.minMatchScore : 0;
+            const onlyMatches = filterMatchOnly.checked;
+
             const filteredJobs = jobs.filter(job => {
                 const matchesSearch = job.title.toLowerCase().includes(searchTerms) ||
                     job.company.toLowerCase().includes(searchTerms);
@@ -468,13 +575,20 @@
                 const matchesExp = filterExperience.value === '' || job.experience === filterExperience.value;
                 const matchesSource = filterSource.value === '' || job.source === filterSource.value;
 
-                return matchesSearch && matchesLocation && matchesMode && matchesExp && matchesSource;
+                // Match Threshold Filter
+                const matchesThreshold = !onlyMatches || job.matchScore >= minThreshold;
+
+                return matchesSearch && matchesLocation && matchesMode && matchesExp && matchesSource && matchesThreshold;
             });
 
             // Sort logic
             filteredJobs.sort((a, b) => {
-                if (filterSort.value === 'latest') return a.postedDaysAgo - b.postedDaysAgo;
-                return b.postedDaysAgo - a.postedDaysAgo;
+                const sortType = filterSort.value;
+                if (sortType === 'latest') return a.postedDaysAgo - b.postedDaysAgo;
+                if (sortType === 'oldest') return b.postedDaysAgo - a.postedDaysAgo;
+                if (sortType === 'score') return b.matchScore - a.matchScore;
+                if (sortType === 'salary') return getSalaryValue(b.salaryRange) - getSalaryValue(a.salaryRange);
+                return 0;
             });
 
             jobCount.textContent = `Showing ${filteredJobs.length} jobs`;
@@ -482,6 +596,17 @@
             if (filteredJobs.length === 0) {
                 grid.style.display = 'none';
                 emptyState.style.display = 'flex';
+
+                const emptyTitle = emptyState.querySelector('.empty-state__title');
+                const emptyBody = emptyState.querySelector('.empty-state__body');
+
+                if (onlyMatches) {
+                    emptyTitle.textContent = "No matches found.";
+                    emptyBody.textContent = "No roles match your criteria. Adjust filters or lower threshold.";
+                } else {
+                    emptyTitle.textContent = "No jobs found.";
+                    emptyBody.textContent = "Try adjusting your filters or search keywords.";
+                }
                 return;
             }
 
@@ -492,6 +617,13 @@
                 const isSaved = savedJobs.includes(job.id);
                 const postedText = job.postedDaysAgo === 0 ? 'Today' : `${job.postedDaysAgo}d ago`;
 
+                // Match score badge color
+                let scoreClass = 'badge--neutral';
+                if (job.matchScore >= 80) scoreClass = 'badge--success';
+                else if (job.matchScore >= 60) scoreClass = 'badge--warning';
+                else if (job.matchScore >= 40) scoreClass = 'badge--neutral';
+                else scoreClass = 'badge--subtle'; // Custom class
+
                 const card = document.createElement('div');
                 card.className = 'card job-card';
                 card.innerHTML = `
@@ -499,6 +631,7 @@
                         <span class="job-card__company">${job.company}</span>
                         <span class="job-card__tag">${postedText}</span>
                         <span class="badge ${job.source === 'LinkedIn' ? 'badge--success' : (job.source === 'Naukri' ? 'badge--warning' : 'badge--neutral')}">${job.source}</span>
+                        ${userPrefs ? `<span class="badge ${scoreClass}" style="margin-left: auto;">${job.matchScore}% Match</span>` : ''}
                     </div>
                     <h3 class="card__title" style="font-size: var(--text-lg); margin-bottom: var(--space-2);">${job.title}</h3>
                     
@@ -628,6 +761,7 @@
         filterExperience.addEventListener('change', renderJobs);
         filterSource.addEventListener('change', renderJobs);
         filterSort.addEventListener('change', renderJobs);
+        filterMatchOnly.addEventListener('change', renderJobs);
 
         // Init
         renderJobs();

@@ -65,6 +65,13 @@
     outline-offset: 3px;
 }
 
+/* Success: green */
+.btn--success {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    color: #ffffff;
+}
+
 /* Danger outline variant */
 .btn--danger-outline {
     border-color: var(--color-accent);
@@ -164,6 +171,13 @@
     background-color: var(--color-error-bg);
     color: var(--color-error);
     border-color: #D4A0A0;
+}
+
+.badge--subtle {
+    background-color: var(--color-bg);
+    color: var(--color-muted);
+    border-color: var(--color-border);
+    opacity: 0.7;
 }
 
 
@@ -444,6 +458,20 @@
     background-color: var(--color-error-bg);
     border-left-color: var(--color-error);
     color: var(--color-error);
+}
+
+/* Alerts */
+.alert {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    font-size: var(--text-sm);
+}
+
+.alert--neutral {
+    background-color: var(--color-warning-bg);
+    border-color: var(--color-warning);
+    color: var(--color-warning);
 }
 
 
