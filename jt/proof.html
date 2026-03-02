@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proof & Submission - Job Notification Tracker</title>
+    <link rel="stylesheet" href="../css/tokens.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <style>
+        .step-list {
+            margin-top: var(--space-4);
+        }
+
+        .step-item {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--space-2) 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .badge-status {
+            padding: 2px 8px;
+            font-size: var(--text-xs);
+            border-radius: var(--radius-sm);
+        }
+
+        .badge-not-started {
+            background-color: var(--color-muted);
+            color: var(--color-bg);
+        }
+
+        .badge-in-progress {
+            background-color: var(--color-warning);
+            color: var(--color-bg);
+        }
+
+        .badge-shipped {
+            background-color: var(--color-success);
+            color: var(--color-bg);
+        }
+
+        .input-group {
+            margin-top: var(--space-3);
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: var(--weight-medium);
+            margin-bottom: var(--space-1);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: var(--space-2);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+        }
+
+        .copy-btn {
+            margin-top: var(--space-4);
+        }
+
+        .ship-message {
+            margin-top: var(--space-4);
+            font-size: var(--text-lg);
+            color: var(--color-success);
+        }
+    </style>
+</head>
+
+<body>
+    <header class="nav-header">
+        <div class="container nav-container">
+            <a href="../index.html" class="nav-brand">
+                <div class="top-bar__logo-dot"></div>
+                Job Tracker
+            </a>
+            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle menu">☰</button>
+            <nav class="nav-links" id="nav-links">
+                <a href="../dashboard.html" class="nav-link">Dashboard</a>
+                <a href="../saved.html" class="nav-link">Saved</a>
+                <a href="../digest.html" class="nav-link">Digest</a>
+                <a href="../settings.html" class="nav-link">Settings</a>
+                <a href="../proof.html" class="nav-link">Proof</a>
+                <a href="07-test.html" class="nav-link">Test Checklist</a>
+                <a href="08-ship.html" class="nav-link">Ship</a>
+                <a href="proof.html" class="nav-link active">Final Proof</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="page-header">
+            <h1 class="page-title">Project 1 — Job Notification Tracker</h1>
+            <div id="status-badge" class="badge-status badge-not-started">Not Started</div>
+        </section>
+
+        <!-- Step Completion Summary -->
+        <section class="step-list" id="step-summary">
+            <h2 class="text-lg">Step Completion Summary</h2>
+            <div class="step-item"><span>1. Preferences Logic</span><span id="step1-status">Pending</span></div>
+            <div class="step-item"><span>2. Match Score Engine</span><span id="step2-status">Pending</span></div>
+            <div class="step-item"><span>3. Daily Digest</span><span id="step3-status">Pending</span></div>
+            <div class="step-item"><span>4. Job Status Tracking</span><span id="step4-status">Pending</span></div>
+            <div class="step-item"><span>5. Test Checklist</span><span id="step5-status">Pending</span></div>
+            <div class="step-item"><span>6. Ship Lock</span><span id="step6-status">Pending</span></div>
+            <div class="step-item"><span>7. Proof Page</span><span id="step7-status">Pending</span></div>
+            <div class="step-item"><span>8. Final Submission</span><span id="step8-status">Pending</span></div>
+        </section>
+
+        <!-- Artifact Collection Inputs -->
+        <section class="input-group" id="artifact-inputs">
+            <h2 class="text-lg">Artifact Collection</h2>
+            <div class="input-group">
+                <label for="lovable-link">Lovable Project Link</label>
+                <input type="url" id="lovable-link" placeholder="https://..." />
+            </div>
+            <div class="input-group">
+                <label for="github-link">GitHub Repository Link</label>
+                <input type="url" id="github-link" placeholder="https://github.com/..." />
+            </div>
+            <div class="input-group">
+                <label for="live-link">Deployed URL (Vercel or equivalent)</label>
+                <input type="url" id="live-link" placeholder="https://..." />
+            </div>
+        </section>
+
+        <button class="btn btn--primary copy-btn" id="copy-submission">Copy Final Submission</button>
+        <div id="ship-message" class="ship-message" style="display:none;">Project 1 Shipped Successfully.</div>
+    </main>
+
+    <script>
+        // Mobile menu toggle (same pattern as other pages)
+        document.getElementById('mobile-menu-btn').addEventListener('click', function () {
+            document.getElementById('nav-links').classList.toggle('show');
+        });
+
+        const stepStatusIds = ['step1-status', 'step2-status', 'step3-status', 'step4-status', 'step5-status', 'step6-status', 'step7-status', 'step8-status'];
+        const stepKeys = ['prefLogic', 'matchEngine', 'digest', 'statusTracking', 'testChecklist', 'shipLock', 'proofPage', 'finalSubmission'];
+
+        // Load step completion from localStorage (if present)
+        function loadStepStatus() {
+            stepKeys.forEach((key, idx) => {
+                const completed = localStorage.getItem(key) === 'true';
+                document.getElementById(stepStatusIds[idx]).textContent = completed ? 'Completed' : 'Pending';
+            });
+        }
+
+        // Load artifact inputs from localStorage
+        function loadArtifacts() {
+            const lovable = localStorage.getItem('lovableProjectLink') || '';
+            const github = localStorage.getItem('githubRepoLink') || '';
+            const live = localStorage.getItem('liveDeploymentLink') || '';
+            document.getElementById('lovable-link').value = lovable;
+            document.getElementById('github-link').value = github;
+            document.getElementById('live-link').value = live;
+        }
+
+        // Save artifact inputs on change (basic URL validation)
+        function saveArtifact(id, storageKey) {
+            const el = document.getElementById(id);
+            el.addEventListener('change', () => {
+                const val = el.value.trim();
+                if (val && !/^https?:\/\/.test(val)) {
+                    alert('Please enter a valid URL starting with http:// or https://');
+                    el.focus();
+                    return;
+                }
+                localStorage.setItem(storageKey, val);
+                evaluateShipStatus();
+            });
+        }
+
+        // Copy final submission formatted text
+        function copySubmission() {
+            const lovable = localStorage.getItem('lovableProjectLink') || '';
+            const github = localStorage.getItem('githubRepoLink') || '';
+            const live = localStorage.getItem('liveDeploymentLink') || '';
+            const text = `Job Notification Tracker — Final Submission\n\n` +
+                `Lovable Project:\n${lovable}\n\n` +
+                `GitHub Repository:\n${github}\n\n` +
+                `Live Deployment:\n${live}\n\n` +
+                `Core Features:\n- Intelligent match scoring\n- Daily digest simulation\n- Status tracking\n- Test checklist enforced`;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copy-submission');
+                const original = btn.textContent;
+                btn.textContent = 'Copied! ✓';
+                setTimeout(() => btn.textContent = original, 2000);
+            });
+        }
+
+        // Ship validation logic
+        function evaluateShipStatus() {
+            const checklist = JSON.parse(localStorage.getItem('testChecklistStatus') || '{}');
+            const passed = Object.values(checklist).filter(v => v).length;
+            const allLinksProvided = localStorage.getItem('lovableProjectLink') && localStorage.getItem('githubRepoLink') && localStorage.getItem('liveDeploymentLink');
+            const statusBadge = document.getElementById('status-badge');
+            const shipMsg = document.getElementById('ship-message');
+            if (allLinksProvided && passed === 10) {
+                statusBadge.textContent = 'Shipped';
+                statusBadge.className = 'badge-status badge-shipped';
+                shipMsg.style.display = 'block';
+                localStorage.setItem('projectShipped', 'true');
+            } else if (allLinksProvided || passed === 10) {
+                statusBadge.textContent = 'In Progress';
+                statusBadge.className = 'badge-status badge-in-progress';
+                shipMsg.style.display = 'none';
+                localStorage.removeItem('projectShipped');
+            } else {
+                statusBadge.textContent = 'Not Started';
+                statusBadge.className = 'badge-status badge-not-started';
+                shipMsg.style.display = 'none';
+                localStorage.removeItem('projectShipped');
+            }
+        }
+
+        // Initialisation
+        loadStepStatus();
+        loadArtifacts();
+        evaluateShipStatus();
+        document.getElementById('copy-submission').addEventListener('click', copySubmission);
+        saveArtifact('lovable-link', 'lovableProjectLink');
+        saveArtifact('github-link', 'githubRepoLink');
+        saveArtifact('live-link', 'liveDeploymentLink');
+    </script>
+</body>
+
+</html>
