@@ -137,19 +137,308 @@
     <main class="container">
         <div class="page-header">
             <h1 class="page-title">Daily Digest</h1>
+            <p class="text-sm text-muted" id="digest-date-display"></p>
         </div>
 
-        <div class="empty-state">
+        <div id="blocking-message" class="alert alert--neutral" style="display: none; margin-bottom: var(--space-4);">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <span>Set your preferences to activate intelligent matching and generate a personalized digest.</span>
+                <a href="settings.html" class="btn btn--secondary"
+                    style="padding: 4px 12px; font-size: var(--text-xs);">Go to Settings</a>
+            </div>
+        </div>
+
+        <div id="digest-controls"
+            style="margin-bottom: var(--space-5); display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center;">
+            <button id="generate-digest-btn" class="btn btn--primary">Generate Today's 9AM Digest (Simulated)</button>
+            <div id="digest-actions" style="display: none; gap: var(--space-2);">
+                <button id="copy-digest-btn" class="btn btn--secondary">Copy Digest to Clipboard</button>
+                <button id="email-digest-btn" class="btn btn--secondary">Create Email Draft</button>
+            </div>
+            <p style="font-size: 11px; color: var(--color-muted); margin-left: auto;">Demo Mode: Daily 9AM trigger
+                simulated manually.</p>
+        </div>
+
+        <div id="digest-container" class="email-layout" style="display: none;">
+            <div class="email-card">
+                <div class="email-header">
+                    <h2 class="email-title">Top 10 Jobs For You — 9AM Digest</h2>
+                    <p class="email-subtitle" id="email-date-subtext"></p>
+                </div>
+
+                <div id="digest-list" class="email-body">
+                    <!-- Digest items injected here -->
+                </div>
+
+                <div class="email-footer">
+                    <p>This digest was generated based on your preferences.</p>
+                    <p style="margin-top: 8px;">Job Notification Tracker &copy; 2026</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="digest-empty" class="empty-state">
             <div class="empty-state__icon">☕</div>
             <h2 class="empty-state__title">Your digest is brewing</h2>
             <p class="empty-state__body">Check back at 9AM for your personalized batch of high-signal opportunities.</p>
         </div>
     </main>
 
+    <style>
+        .email-layout {
+            background-color: var(--color-bg);
+            padding: var(--space-5) var(--space-2);
+            border-radius: var(--radius-lg);
+            display: flex;
+            justify-content: center;
+        }
+
+        .email-card {
+            background-color: var(--color-surface);
+            max-width: 600px;
+            width: 100%;
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-card);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+
+        .email-header {
+            padding: var(--space-4);
+            border-bottom: 2px solid var(--color-accent);
+            text-align: center;
+        }
+
+        .email-title {
+            font-family: var(--font-heading);
+            font-size: var(--text-xl);
+            color: var(--color-text);
+            margin-bottom: 4px;
+        }
+
+        .email-subtitle {
+            font-size: var(--text-sm);
+            color: var(--color-muted);
+        }
+
+        .email-body {
+            padding: var(--space-3);
+        }
+
+        .digest-item {
+            padding: var(--space-3) 0;
+            border-bottom: 1px solid var(--color-overlay);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .digest-item:last-child {
+            border-bottom: none;
+        }
+
+        .digest-item__info {
+            flex: 1;
+        }
+
+        .digest-item__title {
+            font-weight: 600;
+            font-size: var(--text-base);
+            color: var(--color-text);
+            margin-bottom: 2px;
+        }
+
+        .digest-item__meta {
+            font-size: var(--text-xs);
+            color: var(--color-muted);
+        }
+
+        .digest-item__score {
+            font-weight: 600;
+            font-size: var(--text-xs);
+            color: var(--color-success);
+            margin-top: 4px;
+            display: block;
+        }
+
+        .email-footer {
+            padding: var(--space-4);
+            background-color: var(--color-overlay);
+            color: var(--color-muted);
+            font-size: var(--text-xs);
+            text-align: center;
+        }
+    </style>
+
+    <script src="js/data.js"></script>
     <script>
+        // 1. Mobile Menu Toggle
         document.getElementById('mobile-menu-btn').addEventListener('click', function () {
             document.getElementById('nav-links').classList.toggle('show');
         });
+
+        // 2. Fetch data & setup state
+        let jobs = [];
+        if (typeof getJobsData !== 'undefined') {
+            jobs = getJobsData();
+        }
+        const userPrefs = JSON.parse(localStorage.getItem('jobTrackerPreferences') || 'null');
+
+        // DOM elements
+        const generateBtn = document.getElementById('generate-digest-btn');
+        const digestContainer = document.getElementById('digest-container');
+        const digestList = document.getElementById('digest-list');
+        const digestEmpty = document.getElementById('digest-empty');
+        const blockingMessage = document.getElementById('blocking-message');
+        const emailDateSubtext = document.getElementById('email-date-subtext');
+        const digestDateDisplay = document.getElementById('digest-date-display');
+        const digestActions = document.getElementById('digest-actions');
+        const copyBtn = document.getElementById('copy-digest-btn');
+        const emailBtn = document.getElementById('email-digest-btn');
+
+        // Get Today's Date String
+        const today = new Array(0);
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const displayDate = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+        digestDateDisplay.textContent = `Today is ${displayDate}`;
+
+        // 3. Match Score Engine (Replicated for Digest)
+        function calculateMatchScore(job, prefs) {
+            if (!prefs) return 0;
+            let score = 0;
+
+            if (prefs.roleKeywords?.length > 0) {
+                const titleLower = job.title.toLowerCase();
+                if (prefs.roleKeywords.some(kw => titleLower.includes(kw.toLowerCase()))) score += 25;
+                const descLower = job.description.toLowerCase();
+                if (prefs.roleKeywords.some(kw => descLower.includes(kw.toLowerCase()))) score += 15;
+            }
+            if (prefs.preferredLocations?.includes(job.location)) score += 15;
+            if (prefs.preferredMode?.includes(job.mode)) score += 10;
+            if (prefs.experienceLevel && job.experience === prefs.experienceLevel) score += 10;
+            if (prefs.skills?.length > 0 && job.skills?.length > 0) {
+                const hasSkillOverlap = job.skills.some(skill =>
+                    prefs.skills.some(userSkill =>
+                        skill.toLowerCase().includes(userSkill.toLowerCase()) ||
+                        userSkill.toLowerCase().includes(skill.toLowerCase())
+                    )
+                );
+                if (hasSkillOverlap) score += 15;
+            }
+            if (job.postedDaysAgo <= 2) score += 5;
+            if (job.source === 'LinkedIn') score += 5;
+
+            return Math.min(score, 100);
+        }
+
+        // 4. Generate Digest
+        function generateDigest() {
+            if (!userPrefs) {
+                blockingMessage.style.display = 'block';
+                return;
+            }
+
+            const scoredJobs = jobs.map(job => ({
+                ...job,
+                matchScore: calculateMatchScore(job, userPrefs)
+            }));
+
+            // Filter for high quality matches + sort
+            const digestJobs = scoredJobs
+                .filter(job => job.matchScore > 0) // Only include relevant jobs
+                .sort((a, b) => {
+                    if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
+                    return a.postedDaysAgo - b.postedDaysAgo;
+                })
+                .slice(0, 10);
+
+            if (digestJobs.length === 0) {
+                digestEmpty.innerHTML = `
+                    <div class="empty-state__icon">🔍</div>
+                    <h2 class="empty-state__title">No matching roles today</h2>
+                    <p class="empty-state__body">No matching roles today. Check again tomorrow.</p>
+                `;
+                return;
+            }
+
+            const digestData = {
+                date: dateStr,
+                displayDate: displayDate,
+                jobs: digestJobs
+            };
+
+            localStorage.setItem(`jobTrackerDigest_${dateStr}`, JSON.stringify(digestData));
+            renderDigest(digestData);
+        }
+
+        // 5. Render Digest
+        function renderDigest(data) {
+            digestList.innerHTML = '';
+            emailDateSubtext.textContent = data.displayDate;
+
+            data.jobs.forEach(job => {
+                const div = document.createElement('div');
+                div.className = 'digest-item';
+                div.innerHTML = `
+                    <div class="digest-item__info">
+                        <div class="digest-item__title">${job.title} at ${job.company}</div>
+                        <div class="digest-item__meta">${job.location} • ${job.experience} • ${job.postedDaysAgo === 0 ? 'Today' : job.postedDaysAgo + 'd ago'}</div>
+                        <span class="digest-item__score">${job.matchScore}% Match</span>
+                    </div>
+                    <a href="${job.applyUrl}" target="_blank" class="btn btn--primary" style="padding: 6px 14px; font-size: var(--text-xs);">Apply</a>
+                `;
+                digestList.appendChild(div);
+            });
+
+            digestContainer.style.display = 'flex';
+            digestEmpty.style.display = 'none';
+            digestActions.style.display = 'flex';
+            generateBtn.style.display = 'none';
+        }
+
+        // 6. Action: Copy to Clipboard
+        copyBtn.addEventListener('click', () => {
+            const savedDigest = JSON.parse(localStorage.getItem(`jobTrackerDigest_${dateStr}`));
+            if (!savedDigest) return;
+
+            let text = `My 9AM Job Digest — ${savedDigest.displayDate}\n\n`;
+            savedDigest.jobs.forEach((job, i) => {
+                text += `${i + 1}. ${job.title} @ ${job.company}\n   ${job.location} | ${job.matchScore}% Match | ${job.applyUrl}\n\n`;
+            });
+            text += `Generated based on your preferences in Job Notification Tracker.`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied! ✓';
+                setTimeout(() => copyBtn.textContent = originalText, 2000);
+            });
+        });
+
+        // 7. Action: Email Draft
+        emailBtn.addEventListener('click', () => {
+            const savedDigest = JSON.parse(localStorage.getItem(`jobTrackerDigest_${dateStr}`));
+            if (!savedDigest) return;
+
+            const subject = encodeURIComponent("My 9AM Job Digest");
+            let body = `Top 10 Jobs For You — ${savedDigest.displayDate}\n\n`;
+            savedDigest.jobs.forEach((job, i) => {
+                body += `${i + 1}. ${job.title} at ${job.company}\n   Score: ${job.matchScore}% | Location: ${job.location}\n   Apply: ${job.applyUrl}\n\n`;
+            });
+            body += `Regards,\nJob Tracker User`;
+
+            window.location.href = `mailto:?subject=${subject}&body=${encodeURIComponent(body)}`;
+        });
+
+        // Init: Check for existing today
+        const existingDigest = localStorage.getItem(`jobTrackerDigest_${dateStr}`);
+        if (existingDigest) {
+            renderDigest(JSON.parse(existingDigest));
+        }
+
+        generateBtn.addEventListener('click', generateDigest);
     </script>
 </body>
 
